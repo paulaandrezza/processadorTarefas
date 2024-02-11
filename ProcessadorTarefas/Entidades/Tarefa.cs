@@ -26,10 +26,7 @@ namespace ProcessadorTarefas.Entidades
         public IEnumerable<Subtarefa> SubtarefasPendentes { get; set; } = new List<Subtarefa>();
         public IEnumerable<Subtarefa> SubtarefasExecutadas { get; set; } = new List<Subtarefa>();
 
-        private Tarefa()
-        {
-            
-        }
+        private Tarefa() { }
 
         public static Tarefa Criar(int id, IConfiguration? configs = null)
         {
@@ -51,9 +48,9 @@ namespace ProcessadorTarefas.Entidades
 
             for (int i = 0; i < quantidadeSubtarefas; i++)
                 result.Add(
-                    new Subtarefa() 
-                    { 
-                        Duracao = TimeSpan.FromSeconds(random.Next(int.Parse(configs?[Consts.MIN_DURATION_SUBTASKS] ?? "1"), int.Parse(configs?[Consts.MAX_DURATION_SUBTASKS] ?? "10"))) 
+                    new Subtarefa()
+                    {
+                        Duracao = TimeSpan.FromSeconds(random.Next(int.Parse(configs?[Consts.MIN_DURATION_SUBTASKS] ?? "1"), int.Parse(configs?[Consts.MAX_DURATION_SUBTASKS] ?? "10")))
                     });
 
             return result;
@@ -65,70 +62,34 @@ namespace ProcessadorTarefas.Entidades
             SubtarefasExecutadas = SubtarefasExecutadas.Append(subtarefa);
         }
 
-        public void Agendar()
+        public void MudarEstado(EstadoTarefa novoEstado)
         {
-            if (Estado == EstadoTarefa.Agendada)
-                throw new InvalidOperationException($"Tarefa {Id} já está agendada.");
-            else if (Estado == EstadoTarefa.Criada)
-            {
-                Estado = EstadoTarefa.Agendada;
-            }
-            else
-                throw new InvalidOperationException($"Não é possível agendar a Tarefa {Id} pois o seu estado atual é {Estado}.");
-        }
+            if (Estado == novoEstado)
+                throw new InvalidOperationException($"Tarefa {Id} já está com estado {Estado}.");
 
-        public void Iniciar()
-        {
-            if (Estado == EstadoTarefa.EmExecucao)
-                throw new InvalidOperationException($"Tarefa {Id} já está em execução.");
-            else if (PodeSerExecutada())
+            else if (!TarefaHelpers.TransicoesPermitidas.TryGetValue(Estado, out var estadosPermitidos) || !estadosPermitidos.Contains(novoEstado))
+                throw new InvalidOperationException($"Não é possível realizar essa ação na Tarefa {Id} pois o seu estado atual é {Estado}.");
+
+            else
             {
-                Estado = EstadoTarefa.EmExecucao;
-                if (IniciadaEm == null)
+                Estado = novoEstado;
+                if (novoEstado == EstadoTarefa.EmExecucao && IniciadaEm == null)
                     IniciadaEm = DateTime.Now;
+                else if (novoEstado == EstadoTarefa.Concluida || novoEstado == EstadoTarefa.Cancelada)
+                    EncerradaEm = DateTime.Now;
             }
-            else
-                throw new InvalidOperationException($"Não é possível iniciar a execução da Tarefa {Id} pois o seu estado atual é {Estado}.");
         }
 
-        public void Pausar()
-        {
-            if (Estado == EstadoTarefa.EmPausa)
-                throw new InvalidOperationException($"Tarefa {Id} já está em pausa.");
-            else if (Estado == EstadoTarefa.EmExecucao)
-                Estado = EstadoTarefa.EmPausa;
-            else
-                throw new InvalidOperationException($"Não é possível pausar a Tarefa {Id} pois o seu estado atual é {Estado}.");
-        }
+        public void Agendar() => MudarEstado(EstadoTarefa.Agendada);
 
-        public void Cancelar()
-        {
-            if (Estado == EstadoTarefa.Cancelada)
-                throw new InvalidOperationException($"Tarefa {Id} já está cancelada.");
-            else if (Estado == EstadoTarefa.Agendada || Estado == EstadoTarefa.EmExecucao || Estado == EstadoTarefa.Criada)
-            {
-                Estado = EstadoTarefa.Cancelada;
-                EncerradaEm = DateTime.Now;
-            }
-            else
-                throw new InvalidOperationException($"Não é possível cancelar a Tarefa {Id} pois o seu estado atual é {Estado}.");
-        }
+        public void Iniciar() => MudarEstado(EstadoTarefa.EmExecucao);
 
-        public void Concluir()
-        {
-            if (Estado == EstadoTarefa.Concluida)
-                throw new InvalidOperationException($"Tarefa {Id} já está concluída.");
-            else if (Estado == EstadoTarefa.EmExecucao)
-            {
-                if(SubtarefasPendentes.Count() > 0)
-                    throw new InvalidOperationException($"Tarefa {Id} ainda tem subtarefas pendentes.");
+        public void Pausar() => MudarEstado(EstadoTarefa.EmPausa);
 
-                Estado = EstadoTarefa.Concluida;
-                EncerradaEm = DateTime.Now;
-            }
-            else
-                throw new InvalidOperationException($"Não é possível cancelar a Tarefa {Id} pois o seu estado atual é {Estado}.");
-        }
+        public void Cancelar() => MudarEstado(EstadoTarefa.Cancelada);
+
+        public void Concluir() => MudarEstado(EstadoTarefa.Concluida);
+
         public bool PodeSerExecutada()
             => Estado == EstadoTarefa.Agendada || Estado == EstadoTarefa.EmPausa;
     }
