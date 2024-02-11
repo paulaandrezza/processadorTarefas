@@ -25,50 +25,61 @@ namespace ConsoleUI
             {
                 if (Console.KeyAvailable)
                 {
-                    var option = Console.ReadKey(intercept: true).KeyChar;
-                    Console.WriteLine();
-                    switch (option)
+                    try
                     {
-                        case '1':
-                            visaoAtual = Visualizacao.TarefasAtivas;
-                            break;
-                        case '2':
-                            var tarefasInativas = await gerenciador.ListarInativas();
-                            ProgramHelpers.ImprimirTarefas(tarefasInativas);
-                            visaoAtual = Visualizacao.TarefasInativas;
-                            break;
-                        case '3':
-                            await gerenciador.Criar();
-                            Console.WriteLine("Nova tarefa criada");
-                            await Task.Delay(1000);
-                            break;
-                        case '4':
-                            Console.WriteLine("Digite o número da tarefa:");
-                            if (int.TryParse(Console.ReadLine(), out int idTarefa))
-                            {
-                                var tarefa = gerenciador.Consultar(idTarefa);
-                                if (tarefa != null)
-                                    await processador.CancelarTarefa(idTarefa);
-                            }
+                        var option = Console.ReadKey(intercept: true).KeyChar;
+                        Console.WriteLine();
+                        switch (option)
+                        {
+                            case '1':
+                                visaoAtual = Visualizacao.TarefasAtivas;
+                                break;
+                            case '2':
+                                var tarefasInativas = await gerenciador.ListarInativas();
+                                ProgramHelpers.ImprimirTarefas(tarefasInativas);
+                                visaoAtual = Visualizacao.TarefasInativas;
+                                break;
+                            case '3':
+                                await gerenciador.Criar();
+                                Console.WriteLine("Nova tarefa criada");
+                                await Task.Delay(1000);
+                                break;
+                            case '4':
+                                Console.WriteLine("Digite o número da tarefa:");
+                                if (int.TryParse(Console.ReadLine(), out int idTarefa))
+                                {
+                                    var tarefa = gerenciador.Consultar(idTarefa);
+                                    if (tarefa != null)
+                                        await processador.CancelarTarefa(idTarefa);
+                                }
 
-                            break;
-                        case '5':
-                            Console.WriteLine("Encerrando processamento...");
-                            await processador.Encerrar();
-                            Console.WriteLine("Processamento encerrado.");
-                            await Task.Delay(1000);
-                            break;
-                        case '6':
-                            Console.WriteLine("Reiniciando processamento...");
-                            await processador.Iniciar();
-                            Console.WriteLine("Processamento reiniciado.");
-                            await Task.Delay(1000);
-                            break;
-                        default:
-                            Console.WriteLine("Opção inválida!!!");
-                            visaoAtual = 0;
-                            await Task.Delay(1000);
-                            break;
+                                break;
+                            case '5':
+                                Console.WriteLine("Encerrando processamento...");
+                                await processador.Encerrar();
+                                Console.WriteLine("Processamento encerrado.");
+                                await Task.Delay(1000);
+                                break;
+                            case '6':
+                                Console.WriteLine("Reiniciando processamento...");
+                                await processador.Iniciar();
+                                Console.WriteLine("Processamento reiniciado.");
+                                await Task.Delay(1000);
+                                break;
+                            default:
+                                Console.WriteLine("Opção inválida!!!");
+                                visaoAtual = 0;
+                                await Task.Delay(1000);
+                                break;
+                        }
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Erro: {ex.Message}");
+                        Console.ResetColor();
+                        Console.WriteLine("Pressione qualquer tecla para continuar...");
+                        Console.ReadKey(intercept: true);
                     }
                 }
 
